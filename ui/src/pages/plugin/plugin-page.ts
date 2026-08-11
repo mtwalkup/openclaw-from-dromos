@@ -588,6 +588,13 @@ export class PluginPage extends OpenClawLightDomContentsElement {
       if (info.requiresGatewayAuth === true && this.externalAuthReadyKey !== externalAuthKey) {
         return nothing;
       }
+      // A frame's sandbox is fixed at load: mounting before the bootstrap
+      // config resolves bakes in the DEFAULT_APPLICATION_CONFIG "strict" mode,
+      // and the later re-render updates the attribute without re-executing the
+      // document, so the panel stays script-less forever.
+      if (!context.config.resolved) {
+        return nothing;
+      }
       return html`
         <section class="plugin-tab-embed">
           <iframe

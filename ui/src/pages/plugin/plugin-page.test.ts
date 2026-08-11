@@ -107,6 +107,7 @@ function createExternalPluginPage(
   refresh: ApplicationConfigCapability["refresh"],
   requiresGatewayAuth = true,
   path = "/plugins/external/panel",
+  configResolved = true,
 ) {
   const hello: GatewayHelloOk = {
     type: "hello-ok",
@@ -143,6 +144,7 @@ function createExternalPluginPage(
     },
     config: {
       current: externalPluginConfig([]),
+      resolved: configResolved,
       refresh,
     },
   } as unknown as ApplicationContext<RouteId>;
@@ -407,6 +409,30 @@ describe("PluginPage", () => {
       await page.updateComplete;
       expect(refresh).not.toHaveBeenCalled();
       expect(page.querySelector("iframe")?.getAttribute("src")).toBe("/plugins/external/panel");
+    } finally {
+      page.remove();
+    }
+  });
+
+  it("withholds the panel frame until the bootstrap config resolves", async () => {
+    const refresh = vi.fn(async () => externalPluginConfig());
+    const page = createExternalPluginPage(refresh, false, "/plugins/external/panel", false);
+    document.body.append(page);
+    try {
+      await page.updateComplete;
+      expect(page.querySelector("iframe")).toBeNull();
+    } finally {
+      page.remove();
+    }
+  });
+
+  it("mounts the panel frame with the resolved sandbox mode", async () => {
+    const refresh = vi.fn(async () => externalPluginConfig());
+    const page = createExternalPluginPage(refresh, false, "/plugins/external/panel", true);
+    document.body.append(page);
+    try {
+      await page.updateComplete;
+      expect(page.querySelector("iframe")?.getAttribute("sandbox")).toBe("allow-scripts");
     } finally {
       page.remove();
     }
