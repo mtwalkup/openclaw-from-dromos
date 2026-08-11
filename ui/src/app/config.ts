@@ -49,6 +49,13 @@ type ApplicationConfig = {
 
 export type ApplicationConfigCapability = {
   readonly current: ApplicationConfig;
+  /**
+   * False until the first successful load, while `current` is still
+   * DEFAULT_APPLICATION_CONFIG. Consumers whose render cannot be corrected
+   * after the fact — an iframe `sandbox` is fixed once the frame loads — must
+   * wait for this instead of reading the defaults.
+   */
+  readonly resolved: boolean;
   refresh: (options?: {
     auth?: ApplicationConfigAuthSource;
     skipWithoutAuthCandidate?: boolean;
@@ -227,12 +234,14 @@ export function createApplicationConfigCapability(params: {
   auth?: ApplicationConfigAuthSource;
 }): ApplicationConfigCapability {
   let current = DEFAULT_APPLICATION_CONFIG;
+  let resolved = false;
   let currentAuth = params.auth;
   let refreshVersion = 0;
   const listeners = new Set<(config: ApplicationConfig) => void>();
 
   const publish = (next: ApplicationConfig) => {
     current = next;
+    resolved = true;
     for (const listener of listeners) {
       listener(current);
     }
@@ -241,6 +250,9 @@ export function createApplicationConfigCapability(params: {
   return {
     get current() {
       return current;
+    },
+    get resolved() {
+      return resolved;
     },
     async refresh(options) {
       currentAuth = options?.auth ?? currentAuth;
